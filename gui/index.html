@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Video Uploads</title>
+  <style>
+    .grid { display: flex; flex-wrap: wrap; }
+    video { width: 200px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Uploaded Videos</h1>
+  <div class="grid">
+    <!-- JS injected videos -->
+  </div>
+
+  <script>
+    fetch("videos/")
+      .then(res => res.text())
+      .then(html => {
+        const matches = html.match(/href="([^"]+\.mp4)"/g);
+        const grid = document.querySelector(".grid");
+
+        if (matches) {
+          matches.forEach(match => {
+            const file = match.match(/"(.+?)"/)[1];
+            const video = document.createElement("video");
+            video.src = "videos/" + file;
+            video.controls = true;
+            video.onmouseover = () => video.play();
+            video.onmouseout = () => video.pause();
+            grid.appendChild(video);
+          });
+        }
+      });
+  </script>
+</body>
+</html>

@@ -2,7 +2,8 @@
 
 ## Requirements
 - GCC/G++ compiler on both machines
-- Install Boost.Asio (networking) and Boost.Filesystem (file handling) on both machines
+- Install Boost.Asio (networking) and Boost.Filesystem (file handling) on both machines (https://www.boost.org)
+- Include Boost in your machine's PATH
 
 ## On Consumer Side (Mac/Windows Machine)  
 1. Compile & run `consumer.cpp` using the appropriate command for your OS.  
