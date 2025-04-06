@@ -30,7 +30,7 @@ struct VideoJob {
 queue<VideoJob> videoQueue;
 unordered_set<string> hashSet;
 
-// compute SHA hash for video byte data to 
+// compute SHA256 hash for video byte data to 
 // detect duplicates
 string computeHash(const vector<char>& data) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
