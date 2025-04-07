@@ -29,22 +29,28 @@ void sendVideo(const string& fileName) {
 
         char buffer[BUFFER_SIZE];
         while (file.read(buffer, BUFFER_SIZE) || file.gcount() > 0) {
-            write(socket, buffer(buffer, file.gcount()));
+            write(socket, boost::asio::buffer(buffer, file.gcount()));
         }
 
         file.close();
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
 
         char response[64] = {0};
-        socket.read_some(buffer(response));
+        socket.read_some(boost::asio::buffer(response));
         string reply(response);
         cout << "Server reply: " << reply;
+
+        if (reply.find("DUPLICATE") != string::npos) {
+            cout << "Duplicate file detected. Skipping: " << fileName << endl;
+            boost::filesystem::remove(fileName); 
+        }
 
         if (reply.find("RECEIVED") != string::npos) {
             cout << "Sent: " << fileName << endl;
             boost::filesystem::remove(fileName); //remove vid from folder after sending
         }
 
-    } catch (exception& e) {
+    } catch (std::exception& e) {
         cerr << "Error sending: " << e.what() << endl;
     }
 }
@@ -56,7 +62,7 @@ void producerThread(const string& folderName) {
                 sendVideo(entry.path().string());
             }
         }
-        this_thread::sleep_for(chrono::seconds(3));
+        this_thread::sleep_for(std::chrono::seconds(3));
     }
 }
 

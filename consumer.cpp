@@ -16,8 +16,9 @@ using boost::asio::ip::tcp;
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
-#define MAX_QUEUE_SIZE 5
 #define SAVE_DIR "videos/"
+
+int MAX_QUEUE_SIZE = 0;
 
 mutex queue_mutex;
 condition_variable cv;
@@ -49,11 +50,19 @@ void saveAndCompressVideo(const VideoJob& job) {
     string finalFile = SAVE_DIR + job.hash + ".mp4";
 
     ofstream out(rawFile, ios::binary);
+    if (!out.is_open()) {
+        cerr << "Failed to open raw file for writing: " << rawFile << endl;
+        return;
+    }
     out.write(job.data.data(), job.data.size());
     out.close();
 
     string cmd = "ffmpeg -y -i " + rawFile + " -vcodec libx264 -crf 28 " + finalFile + " > /dev/null 2>&1";
-    system(cmd.c_str());
+    int ret = system(cmd.c_str());
+    if (ret != 0) {
+        cerr << "Error while compressing:" << cmd << endl;
+        return;
+    }
 
     // remove uncompressed file
     boost::filesystem::remove(rawFile);
@@ -81,8 +90,9 @@ void handle_connection(tcp::socket socket) {
         boost::system::error_code error;
         size_t length;
 
-        while ((length = socket.read_some(buffer(temp), error)) > 0) {
+        while ((length = socket.read_some(boost::asio::buffer(temp), error)) > 0) {
             buffer.insert(buffer.end(), temp, temp + length);
+            //cout << "Received " << length << " bytes of data\n";
         }
 
         string hash = computeHash(buffer);
@@ -93,14 +103,14 @@ void handle_connection(tcp::socket socket) {
             // drop duplicates
             if (hashSet.count(hash)) {
                 cout << "Duplicate dropped\n";
-                write(socket, buffer("DUPLICATE\n"));
+                write(socket, boost::asio::buffer("DUPLICATE\n"));
                 return;
             }
 
             // leaky bucket
             if (videoQueue.size() >= MAX_QUEUE_SIZE) {
                 cout << "Queue full. Dropped\n";
-                write(socket, buffer("QUEUE_FULL\n"));
+                write(socket, ::boost::asio::buffer("QUEUE_FULL\n"));
                 return;
             }
 
@@ -109,7 +119,8 @@ void handle_connection(tcp::socket socket) {
             cv.notify_one();
         }
 
-        write(socket, buffer("RECEIVED\n"));
+
+        write(socket, boost::asio::buffer("RECEIVED\n"));
     } catch (exception& e) {
         cerr << "Connection error: " << e.what() << endl;
     }
@@ -126,6 +137,9 @@ int main() {
     cout << "Enter number of consumer threads: ";
     cin >> c;
 
+    cout << "Enter max queue size: ";
+    cin >> MAX_QUEUE_SIZE;
+
     vector<thread> consumers;
     for (int i = 0; i < c; ++i)
         consumers.emplace_back(consumerThreadFunc);
@@ -134,7 +148,9 @@ int main() {
 
     while (true) {
         tcp::socket socket(io_context);
+        //cout << "Waiting for connection..." << endl;
         acceptor.accept(socket);
+        //cout << "Connection established with producer!"<< endl;
         thread(handle_connection, std::move(socket)).detach();
     }
 
