@@ -1,46 +1,46 @@
 # P3-discm
 
 ## Requirements
+Befor running the project, make sure you have the following installed:
 - GCC/G++ compiler on both machines
-- Install Boost.Asio (networking) and Boost.Filesystem (file handling) on both machines (https://www.boost.org)
-- Include Boost in your machine's PATH
+- Boost.Asio (for networking) and Boost.Filesystem (for file handling) on both machines 
+- OpenSSL (for hashing) on consumer machine
+- FFmpeg (for video compression) on consumer machine
 
-## On Consumer Side (Mac/Windows Machine)  
+## On Consumer Side 
 1. Compile & run `consumer.cpp` using the appropriate command for your OS.  
 
-For Mac:  
 ```sh
-g++ consumer.cpp -o consumer -lboost_system -std=c++11
+g++ consumer.cpp -o consumer -lboost_system -lboost_filesystem -lssl -lcrypto -std=c++11
 ./consumer
 ```  
 
-For Windows:  
+2. In a new terminal, compile & run `server.cpp` to view GUI (web browser based).
 ```sh
-g++ consumer.cpp -o consumer -lboost_system -lws2_32 -std=c++11
-./consumer
+g++ server.cpp -o server -lboost_system -lboost_filesystem -std=c++11
+./server
+```  
+
+3. In your browser, go to:
+```sh
+http://localhost:8081/
 ```  
 
 ## On Producer Side (Ubuntu Virtual Machine)  
-2. **Modify `producer.cpp`:** Change `SERVER_IP` to your consumer machine’s IP address.  
+4. **Modify `producer.cpp`:** Change `SERVER_IP` to your consumer machine’s IP address.  
 ```sh
 #define SERVER_IP "000.000.000.000"  // replace
 ```  
-3. **Compile & Run `producer.cpp`:** 
+5. **Compile & Run `producer.cpp`:** 
 
-For Mac:
-   ```sh
-   g++ producer.cpp -o producer -lboost_system -lboost_filesystem -pthread -std=c++11
-  ./producer
-   ```  
-For Windows:
-   ```sh
-   g++ producer.cpp -o producer -lboost_system -lboost_filesystem -lws2_32 -std=c++11
-  ./producer
-   ```  
-4. **Enter the Number of Producer Threads.**  
-5. **Start Adding Videos** to the created folders and verify that the videos are sent and received on the consumer side.  
+```sh
+g++ producer.cpp -o producer -lboost_system -lboost_filesystem -pthread -std=c++11
+./producer
+```
+## SAMPLE DEMO
 
 
+https://github.com/user-attachments/assets/db1a3683-4ef7-4ae1-bead-b9ccc9b50585
 
-https://github.com/user-attachments/assets/e9927438-57c4-4568-a53e-213c63405a43
+
 
