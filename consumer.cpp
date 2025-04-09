@@ -15,7 +15,6 @@ using namespace boost::asio;
 using boost::asio::ip::tcp;
 
 #define PORT 8080
-#define BUFFER_SIZE 1024
 #define SAVE_DIR "videos/"
 
 int MAX_QUEUE_SIZE = 0;
@@ -26,6 +25,7 @@ condition_variable cv;
 struct VideoJob {
     vector<char> data;
     string hash;
+    string fileName;
 };
 
 queue<VideoJob> videoQueue;
@@ -46,8 +46,8 @@ string computeHash(const vector<char>& data) {
 
 // compress using ffmpeg
 void saveAndCompressVideo(const VideoJob& job) {
-    string rawFile = SAVE_DIR + job.hash + "_raw.mp4";
-    string finalFile = SAVE_DIR + job.hash + ".mp4";
+    string rawFile = SAVE_DIR + job.fileName + "_raw";
+    string finalFile = SAVE_DIR + job.fileName;
 
     ofstream out(rawFile, ios::binary);
     if (!out.is_open()) {
@@ -67,7 +67,9 @@ void saveAndCompressVideo(const VideoJob& job) {
     // remove uncompressed file
     boost::filesystem::remove(rawFile);
 
-    cout << "Saved: " << finalFile << endl;
+    cout << "(---UPLOAD FINISHED---) - Video saved and compressed: " << finalFile << endl;
+
+    //cout << "Saved: " << finalFile << endl;
 }
 
 void consumerThreadFunc() {
@@ -77,6 +79,9 @@ void consumerThreadFunc() {
 
         VideoJob job = videoQueue.front();
         videoQueue.pop();
+
+        cout << "(UPLOADING) - " << job.fileName << " Removed from queue. Updated queue size: " << videoQueue.size() << " / " << MAX_QUEUE_SIZE << endl;
+
         lock.unlock();
 
         saveAndCompressVideo(job);
@@ -86,9 +91,13 @@ void consumerThreadFunc() {
 void handle_connection(tcp::socket socket) {
     try {
         vector<char> buffer;
-        char temp[BUFFER_SIZE];
+        char temp[1024];
         boost::system::error_code error;
         size_t length;
+
+        char nameBuffer[256] = {0};
+        boost::asio::read(socket, boost::asio::buffer(nameBuffer, sizeof(nameBuffer)));
+        string fileName(nameBuffer);
 
         while ((length = socket.read_some(boost::asio::buffer(temp), error)) > 0) {
             buffer.insert(buffer.end(), temp, temp + length);
@@ -102,20 +111,23 @@ void handle_connection(tcp::socket socket) {
 
             // drop duplicates
             if (hashSet.count(hash)) {
-                cout << "Duplicate dropped\n";
+                cout << "------> (DUPLICATE) Video dropped: " << fileName << " <------\n";
                 write(socket, boost::asio::buffer("DUPLICATE\n"));
                 return;
             }
 
             // leaky bucket
             if (videoQueue.size() >= MAX_QUEUE_SIZE) {
-                cout << "Queue full. Dropped\n";
+                cout << "------> (QUEUE FULL) Video dropped: " << fileName << " <------\n";
                 write(socket, ::boost::asio::buffer("QUEUE_FULL\n"));
                 return;
             }
 
-            videoQueue.push({buffer, hash});
+            videoQueue.push({buffer, hash, fileName});
             hashSet.insert(hash);
+
+            cout << "(VIDEO RECEIVED) - " << fileName << " Added to queue. Updated queue size: " << videoQueue.size() << " / " << MAX_QUEUE_SIZE << endl;
+
             cv.notify_one();
         }
 
@@ -144,7 +156,7 @@ int main() {
     for (int i = 0; i < c; ++i)
         consumers.emplace_back(consumerThreadFunc);
 
-    cout << "Consumer listening on port " << PORT << endl;
+    cout << "Consumer listening on port " << PORT << endl << endl;
 
     while (true) {
         tcp::socket socket(io_context);

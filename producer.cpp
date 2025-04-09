@@ -11,7 +11,6 @@ using namespace boost::asio;
 
 #define SERVER_IP "000.000.000.000"  // replace with ur own consumer machine's IP address
 #define PORT 8080
-#define BUFFER_SIZE 1024
 
 void sendVideo(const string& fileName) {
     try {
@@ -27,14 +26,22 @@ void sendVideo(const string& fileName) {
             return;
         }
 
-        char buffer[BUFFER_SIZE];
-        while (file.read(buffer, BUFFER_SIZE) || file.gcount() > 0) {
+        //send file names first
+        string name = boost::filesystem::path(fileName).filename().string();
+        char nameBuffer[256] = {0};
+        strncpy(nameBuffer, name.c_str(), sizeof(nameBuffer) - 1);
+        write(socket, boost::asio::buffer(nameBuffer, sizeof(nameBuffer)));
+
+        //send file data
+        char buffer[1024];
+        while (file.read(buffer, 1024) || file.gcount() > 0) {
             write(socket, boost::asio::buffer(buffer, file.gcount()));
         }
 
         file.close();
         socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
 
+        //receive a reply
         char response[64] = {0};
         socket.read_some(boost::asio::buffer(response));
         string reply(response);
@@ -42,6 +49,11 @@ void sendVideo(const string& fileName) {
 
         if (reply.find("DUPLICATE") != string::npos) {
             cout << "Duplicate file detected. Skipping: " << fileName << endl;
+            boost::filesystem::remove(fileName); 
+        }
+
+        if (reply.find("QUEUE_FULL") != string::npos) {
+            cout << "Queue is Full. Upload Failed: " << fileName << endl;
             boost::filesystem::remove(fileName); 
         }
 
