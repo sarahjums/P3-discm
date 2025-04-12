@@ -1,4 +1,22 @@
-# P3-discm
+# STDISCM Problem Set 3
+
+## DEMO
+https://github.com/user-attachments/assets/58828ea0-c520-4922-9ef3-e55053c03461
+
+- (0:03) Network Setup
+- (1:37) Threading Implementation of Producer Process
+- (1:58) Producer Process
+- (1:58) How the Consumer Process Receive the Files
+- (2:58) Threading Implementation of Consumer Process
+- (3:49) How Uploads Are Limited
+- (4:38) Video Preview on Hover
+- (4:55) Video Playback
+##### Bonus Features:
+- (3:56) Consumer tells producer that queue is full 
+- (5:15) Duplicate Detection 
+- (5:59) Video Compression 
+
+
 
 ## Requirements
 Befor running the project, make sure you have the following installed:
@@ -37,10 +55,5 @@ http://localhost:8081/
 g++ producer.cpp -o producer -lboost_system -lboost_filesystem -pthread -std=c++11
 ./producer
 ```
-## SAMPLE DEMO
-
-
-https://github.com/user-attachments/assets/db1a3683-4ef7-4ae1-bead-b9ccc9b50585
-
 
 
