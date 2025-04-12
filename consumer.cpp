@@ -46,8 +46,15 @@ string computeHash(const vector<char>& data) {
 
 // compress using ffmpeg
 void saveAndCompressVideo(const VideoJob& job) {
-    string rawFile = SAVE_DIR + job.fileName + "_raw";
-    string finalFile = SAVE_DIR + job.fileName;
+    string baseName = job.fileName;
+    
+    //remove ".mp4" if it's at the end
+    if (baseName.size() >= 4 && baseName.substr(baseName.size() - 4) == ".mp4") {
+        baseName = baseName.substr(0, baseName.size() - 4);
+    }
+
+    string rawFile = SAVE_DIR + baseName + "_raw.mp4";
+    string finalFile = SAVE_DIR + baseName + ".mp4";
 
     ofstream out(rawFile, ios::binary);
     if (!out.is_open()) {
